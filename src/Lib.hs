@@ -1,58 +1,66 @@
 module Lib where
 
-import           Control.Parallel.Strategies (parList, rseq, using)
-import           Data.Char                   (digitToInt)
-import           Data.Map.Strict             (Map)
-import qualified Data.Map.Strict             as Map
-import           Data.Maybe                  (mapMaybe)
-import           Data.Set                    (Set)
-import qualified Data.Set                    as Set
+import           Data.Char   (digitToInt)
+import           Data.Maybe
+import qualified Data.Set    as Set
+import           Data.Vector (Vector)
+import qualified Data.Vector as V
+import           Debug.Trace
 
 type Cell = Maybe Int
 
-type Sudoku = Map Int Cell
+type Sudoku = Vector Cell
 
-sudokuString = ".......1.4.........2...........5.4.7..8...3....1.9....3..4..2...5.1........8.6..."
+-- sudokuString = ".278...61....3...891...542.5...16.3....97.2...7.....967......8...6.27....3.48...7"
+-- sudokuString = ".......1.4.........2...........5.4.7..8...3....1.9....3..4..2...5.1........8.6..."
+-- backtrack native 10s
+sudokuString = "36497.5121524369.887912.634738.514296912473852453.916792376.85148651279351789324."
 
 -- sudokuString = "364978512152436978879125634738651429691247385245389167923764851486512793517893246"
 toSudoku :: String -> Sudoku
 toSudoku s =
-  let list =
-        flip map s $ \c ->
-          if c == '.'
-            then Nothing
-            else Just (digitToInt c)
-      tuples = zip [0 .. 80] list
-   in Map.fromList tuples
+  flip V.map (V.fromList s) $ \c ->
+    if c == '.'
+      then Nothing
+      else Just (digitToInt c)
 
-bruteforce :: Sudoku -> Sudoku
-bruteforce = head . backtrack
-
-backtrack :: Sudoku -> [Sudoku]
-backtrack s
-  | solved s = [s]
-  | reject s = []
-  | otherwise = concat (backtrack <$> children s `using` parList rseq)
-
-reject :: Sudoku -> Bool
-reject s = Map.size (Map.filter (Nothing /=) s) == 81
-
-children :: Sudoku -> [Sudoku]
-children s = do
-  i <- [1 .. 9]
-  return $ Map.insert nextEmptyIndex (Just i) s
+backtrack :: Sudoku -> Maybe Sudoku
+backtrack = go
   where
-    nextEmptyIndex = fst . head . Map.toList $ Map.filter (Nothing ==) s
+    go x =
+      if solved x
+        then Just x
+        else listToMaybe . catMaybes . V.toList $ (go <$> children x)
+
+children :: Sudoku -> Vector Sudoku
+children s =
+  let indices = V.filter ((Nothing ==) . snd) (V.indexed s)
+   in if null indices
+        then V.empty
+        else V.map (\i -> (V.//) s [(fst . V.head $ indices, Just i)]) (V.generate 9 (1 +))
 
 solved :: Sudoku -> Bool
 solved sudoku =
-  let results = map (Map.restrictKeys sudoku) indices
-      sizes = map (Set.size . Set.fromList . mapMaybe snd . Map.toList) results
-   in all (== 9) sizes
+  if Nothing `elem` sudoku
+    then False
+    else let results = map (map ((V.!) sudoku)) indices
+             sizes = map (Set.size . Set.fromList) results
+          in all (== 9) sizes
 
-indices :: [Set Int]
-indices = map Set.fromList (rows ++ cols ++ boxes)
+indices :: [[Int]]
+indices = rows ++ cols ++ boxes
   where
     rows = [map ((i * 9) +) [0 .. 8] | i <- [0 .. 8]]
     cols = [map (j +) [i | i <- [0 .. 80], mod i 9 == 0] | j <- [0 .. 8]]
     boxes = [[i * 9 + j | j <- [m .. (m + 2)], i <- [0 .. 2]] | m <- [0, 3, 6, 27, 30, 33, 54, 57, 60]]
+
+showSudoku :: Sudoku -> String
+showSudoku sudoku =
+  concat $
+  flip map [0 .. 80] $ \i ->
+    case (V.!) sudoku i of
+      Just v ->
+        if (i + 1) `mod` 9 == 0
+          then show v ++ "\n"
+          else show v ++ " "
+      Nothing -> "  "
