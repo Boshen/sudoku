@@ -11,12 +11,13 @@ type Cell = Maybe Int
 
 type Sudoku = Vector Cell
 
--- sudokuString = ".278...61....3...891...542.5...16.3....97.2...7.....967......8...6.27....3.48...7"
+sudokuString = ".278...61....3...891...542.5...16.3....97.2...7.....967......8...6.27....3.48...7"
+
 -- sudokuString = ".......1.4.........2...........5.4.7..8...3....1.9....3..4..2...5.1........8.6..."
 -- backtrack native 10s
-sudokuString = "36497.5121524369.887912.634738.514296912473852453.916792376.85148651279351789324."
-
--- sudokuString = "364978512152436978879125634738651429691247385245389167923764851486512793517893246"
+-- with pruning 0.5s
+-- sudokuString = "36497.5121524369.887912.634738.514296912473852453.916792376.85148651279351789324."
+-- sudokuString = "36497851215243697887912563473.651429691247385245389167923764851486512793517893246"
 toSudoku :: String -> Sudoku
 toSudoku s =
   flip V.map (V.fromList s) $ \c ->
@@ -34,10 +35,13 @@ backtrack = go
 
 children :: Sudoku -> Vector Sudoku
 children s =
-  let indices = V.filter ((Nothing ==) . snd) (V.indexed s)
-   in if null indices
+  let allIndices = V.filter ((Nothing ==) . snd) (V.indexed s)
+   in if null allIndices
         then V.empty
-        else V.map (\i -> (V.//) s [(fst . V.head $ indices, Just i)]) (V.generate 9 (1 +))
+        else let nextIndex = fst . V.head $ allIndices
+                 digits = Set.fromList . catMaybes . concatMap (map ((V.!) s)) $ filter (nextIndex `elem`) indices
+                 posibilities = V.fromList . Set.toList $ Set.difference (Set.fromList [1 .. 9]) digits
+              in V.map (\i -> (V.//) s [(nextIndex, Just i)]) posibilities
 
 solved :: Sudoku -> Bool
 solved sudoku =
