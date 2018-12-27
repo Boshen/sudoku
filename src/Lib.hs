@@ -11,13 +11,12 @@ type Cell = Maybe Int
 
 type Sudoku = Vector Cell
 
-sudokuString = ".278...61....3...891...542.5...16.3....97.2...7.....967......8...6.27....3.48...7"
+-- sudokuString = "................................................................................."
+sudokuString = ".......1.4.........2...........5.4.7..8...3....1.9....3..4..2...5.1........8.6..."
 
--- sudokuString = ".......1.4.........2...........5.4.7..8...3....1.9....3..4..2...5.1........8.6..."
 -- backtrack native 10s
 -- with pruning 0.5s
 -- sudokuString = "36497.5121524369.887912.634738.514296912473852453.916792376.85148651279351789324."
--- sudokuString = "36497851215243697887912563473.651429691247385245389167923764851486512793517893246"
 toSudoku :: String -> Sudoku
 toSudoku s =
   flip V.map (V.fromList s) $ \c ->
@@ -62,9 +61,11 @@ showSudoku :: Sudoku -> String
 showSudoku sudoku =
   concat $
   flip map [0 .. 80] $ \i ->
-    case (V.!) sudoku i of
-      Just v ->
+    let n =
+          case (V.!) sudoku i of
+            Just v  -> show v ++ " "
+            Nothing -> "  "
+     in n ++
         if (i + 1) `mod` 9 == 0
-          then show v ++ "\n"
-          else show v ++ " "
-      Nothing -> "  "
+          then "\n"
+          else ""
