@@ -21,15 +21,36 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
+- parallel
 
 library:
   source-dirs: src
+  ghc-options:
+    - -O2
+    - -Wall
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
+    - -Wno-name-shadowing
+    - -Wno-unused-do-bind
+    - -Wno-name-shadowing
 
 executables:
   sudoku-exe:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -O2
+    - -Wall
+    - -Wcompat
+    - -Wincomplete-record-updates
+    - -Wincomplete-uni-patterns
+    - -Wredundant-constraints
+    - -Wno-name-shadowing
+    - -Wno-unused-do-bind
+    - -Wno-name-shadowing
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
